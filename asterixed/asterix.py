@@ -39,6 +39,7 @@ SOFTWARE.
 from xml.dom import minidom
 import struct
 import traceback
+import os
 
 verbose = 0
 
@@ -74,7 +75,8 @@ filenames = \
 def load_asterix_category_format(cat):
     global filenames
     try:
-        return minidom.parse(filenames[cat])
+        directory = os.path.dirname(__file__)
+        return minidom.parse(os.path.join(directory, filenames[cat]))
     except:
         traceback.print_exc()
 
