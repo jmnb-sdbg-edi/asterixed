@@ -47,7 +47,7 @@ verbose = 0
 filenames = \
     {1:'config/asterix_cat001_1_1.xml',
     2:'config/asterix_cat002_1_0.xml',
-    4:'config/asterix_cat004_1_0.xml',
+    4:'config/asterix_cat004_1_8.xml',
     8:'config/asterix_cat008_1_0.xml',
     10:'config/asterix_cat010_1_1.xml',
     19:'config/asterix_cat019_1_2.xml',
