@@ -1,5 +1,7 @@
 name: asterixed
 
+on: [push]
+
 jobs:
   build:
 
