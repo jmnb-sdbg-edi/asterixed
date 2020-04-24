@@ -38,10 +38,12 @@ SOFTWARE.
 #TODO: evaluate if better using lxml for performance
 from xml.dom import minidom
 import struct
-import traceback
 import os
+import logging
 
-verbose = 0
+logging.basicConfig(level = logging.INFO)
+LOG = logging.getLogger('asterixed')
+LOG.setLevel(logging.INFO)
 
 #TODO: check files against "config/asterix.dtd" structure
 filenames = \
@@ -78,8 +80,8 @@ def load_asterix_category_format(cat):
     try:
         directory = os.path.dirname(__file__)
         return minidom.parse(os.path.join(directory, filenames[cat]))
-    except:
-        traceback.print_exc()
+    except Exception as e:
+        logging.error(e, exc_info = True)
 
     return None
 
@@ -94,8 +96,7 @@ def encode(asterix):
         if ctf is None:
             continue
 
-        if verbose >= 1:
-            print 'encoding cat',k
+        LOG.debug('encoding cat %d', k)
 
         for cat_tree in ctf.getElementsByTagName('Category'):
             if k != int(cat_tree.getAttribute('id')):
@@ -122,13 +123,12 @@ def encode_category(cat, did, tree):
             di = int(di)
         rule = c.getAttribute('rule')
         if did.has_key(di):
-            if verbose >= 1:
-                print 'encoding dataitem',di
+            LOG.debug('encoding dataitem %d', di)
             l, v = encode_dataitem(did[di],c)
             mdi[di] = l, v
         else:
             if rule == 'mandatory' and verbose >= 1:
-                print 'absent mandatory dataitem',di
+                LOG.error('absent mandatory dataitem %d', di)
 
     datarecord = 0L
     n_octets_datarecord = 0
@@ -151,7 +151,7 @@ def encode_category(cat, did, tree):
             fspec_bits.append(int(cn.getAttribute('bit')))
 
     if fspec_bits == []:
-        print 'no dataitems identified'
+        LOG.error('no dataitems identified')
         return 0, 0
 
     # FSPEC for data record
@@ -224,10 +224,13 @@ def encode_fixed(bd, tree):
             v = bd[key]
 
             #TODO: consider 'encode' attr
-            value += ((v & mask) << shift_left)
+            try:
+                value += ((v & mask) << shift_left)
+            except TypeError as e:
+                raise e
         else:
             if key != 'FX' and verbose >= 2:
-                print 'field',key,'absent in input'
+                log.debug('field %s absten in input', key)
 
     if has_encoded == False:
         return 0, 0
@@ -268,8 +271,7 @@ def encode_repetitive(db, tree):
             break # found
 
     if found == False:
-        if verbose >= 1:
-            print 'Repetitive node not found'
+        LOG.debug('Repetitive node not found')
         return 0, 0
 
     assert type(db) is list
@@ -295,6 +297,8 @@ def encode_compound(db, tree):
     subfields = []
     for cn in tree.childNodes:
         l = 0
+        if cn.nodeName == '#text':
+            continue
         if cn.nodeName == 'Variable':
             l, v = encode_variable(db, cn)
         else:
@@ -309,7 +313,6 @@ def encode_compound(db, tree):
                     else:
                         if cn.nodeName == 'Compound':
                             l, v = encode_compound(db, cn)
-
         if l > 0:
             subfields.append(sf)
             length += l
@@ -336,8 +339,8 @@ def decode_file(filename):
         x = decode(fp)
         fp.close()
         return x
-    except:
-        print traceback.print_exc()
+    except Exception as e:
+        LOG.error(e, exc_info = True)
 
 
 def decode(stream):
@@ -353,8 +356,7 @@ def decode_record(stream):
     if len(cat_s) == 0:
         return 0, {}
     (cat,) = struct.unpack('B', cat_s)
-    if verbose >= 1:
-        print 'decoding cat',cat
+    LOG.debug('decoding cat %d', cat)
 
     acf = load_asterix_category_format(cat)
     if acf is None:
@@ -369,8 +371,7 @@ def decode_record(stream):
             break
 
     if found == False:
-        if verbose >= 1:
-            print 'category not found in configs files'
+        LOG.debug('category not found in config files')
         return 0, {}
 
     assert int(tree.getAttribute('id')) == cat
@@ -403,8 +404,7 @@ def decode_record(stream):
     results = {}
     length = 0
     for di in sorted_by_frn(dis, tree):
-        if verbose >= 1:
-            print 'decoding dataitem',di
+        LOG.debug('decoding dataitem %d', di)
         l, r = decode_datafield(stream, di, tree)
         results.update({di:r})
         length += l
@@ -524,8 +524,7 @@ def decode_compound(stream, tree):
             break
         oc += 1
 
-    if verbose >= 1:
-        print 'subfields',subfields
+    LOG.debug('subfields %s', subfields)
 
     sf = 0
     results = {}
@@ -574,8 +573,8 @@ def tofile(x, filename):
             fp.write(chr(b))
 
         fp.close()
-    except Exception, e:
-        print str(e)
+    except Exception as e:
+        _LOGAST.error(e, exc_info = True)
 
 
 def sorted_by_frn(items_list, xml_tree):
