@@ -110,6 +110,11 @@ def encode(asterix):
     return data_blocks
 
 
+def tobytes(asterix):
+    data = encode(asterix)
+    return data.to_bytes((data.bit_length() + 7) // 8, byteorder='big', signed=False)
+
+
 def encode_category(cat, did, tree):
     if did == {}:
         return 0, 0
